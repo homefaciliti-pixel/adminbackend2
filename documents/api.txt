@@ -1,0 +1,817 @@
+======================================================================
+HOME FACILITI ADMIN PANEL - BACKEND API DOCUMENTATION
+======================================================================
+
+Base URL: https://partner-backend-2.onrender.com/api (Local: http://localhost:3000/api)
+
+----------------------------------------------------------------------
+1. DASHBOARD STATISTICS
+----------------------------------------------------------------------
+Endpoint: GET /api/dashboard
+Description: Fetch dashboard summary statistics (counts and total earnings).
+Response Format: JSON
+Response Example:
+{
+  "success": true,
+  "data": [
+    { "name": "Total Users", "totalAmount": 3, "imageIcon": "http://localhost:3000/icons/users.png" },
+    { "name": "Total Categories", "totalAmount": 3, "imageIcon": "http://localhost:3000/icons/categories.png" },
+    { "name": "Total Services", "totalAmount": 3, "imageIcon": "http://localhost:3000/icons/services.png" },
+    { "name": "Total Partners", "totalAmount": 2, "imageIcon": "http://localhost:3000/icons/partners.png" },
+    { "name": "Total Orders", "totalAmount": 4, "imageIcon": "http://localhost:3000/icons/orders.png" },
+    { "name": "Today Orders", "totalAmount": 2, "imageIcon": "http://localhost:3000/icons/today_orders.png" },
+    { "name": "Complete Orders", "totalAmount": 1, "imageIcon": "http://localhost:3000/icons/complete_orders.png" },
+    { "name": "Assigned Orders", "totalAmount": 1, "imageIcon": "http://localhost:3000/icons/assigned_orders.png" },
+    { "name": "In Progress Orders", "totalAmount": 1, "imageIcon": "http://localhost:3000/icons/in_progress_orders.png" },
+    { "name": "Cancel Orders", "totalAmount": 1, "imageIcon": "http://localhost:3000/icons/cancel_orders.png" },
+    { "name": "Total Supporters", "totalAmount": 2, "imageIcon": "http://localhost:3000/icons/supporters.png" },
+    { "name": "Subscription Earnings", "totalAmount": 200, "imageIcon": "http://localhost:3000/icons/subscription_earnings.png" },
+    { "name": "Order Earnings", "totalAmount": 2800, "imageIcon": "http://localhost:3000/icons/order_earnings.png" }
+  ]
+}
+
+Endpoint: GET /api/dashboard/pending-partners
+Description: Fetch list of pending approval partners to display on the dashboard.
+Response Data: Array of Partner objects.
+
+----------------------------------------------------------------------
+2. USERS MANAGEMENT
+----------------------------------------------------------------------
+Endpoint: GET /api/users
+Description: Retrieve a list of users.
+Query Parameters (Optional):
+  - query: Search by name, email, or mobile (LIKE match)
+  - name: Filter by name (LIKE match)
+  - email: Filter by email (LIKE match)
+  - mobile: Filter by mobile number (LIKE match)
+Response Data: Array of User objects (includes countryCode).
+
+Endpoint: GET /api/users/:id
+Description: Fetch details of a single user by ID.
+Response Data: Single User object (includes countryCode).
+
+Endpoint: POST /api/users
+Description: Create a new user.
+Request Body (JSON):
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "mobile": "9876543210",
+  "address": "123 Street Name, Delhi"
+}
+Response Data: Created User object.
+
+Endpoint: DELETE /api/users/:id
+Description: Delete a user by ID.
+Response Data: { "success": true, "message": "User deleted successfully" }
+
+----------------------------------------------------------------------
+3. CATEGORIES MANAGEMENT
+----------------------------------------------------------------------
+Endpoint: GET /api/categories
+Description: Retrieve a list of categories.
+Query Parameters (Optional):
+  - title OR categoryName: Filter by category name (LIKE match)
+  - parent OR mainCategory: Filter by parent category name (LIKE match)
+  - status OR emailStatus: Filter by status ('true'/'false' or '1'/'0')
+Response Data: Array of Category objects. Note: parent category 'None' maps to database NULL.
+
+Endpoint: POST /api/categories
+Description: Add a new category.
+Request Body Option A (Standard):
+{
+  "title": "Kitchen Cleaning",
+  "parent": "Cleaning",        // Use 'None' if it has no parent
+  "image": "https://url-to-image.png",
+  "status": true
+}
+Request Body Option B (Alias Fields):
+{
+  "categoryName": "Kitchen Cleaning",
+  "mainCategory": "Cleaning",  // Use 'None' if it has no parent
+  "image": "https://url-to-image.png",
+  "emailStatus": true
+}
+Response Data: Created Category object.
+
+Endpoint: PUT /api/categories/:id
+Description: Update category details. Accepts any properties from Option A or Option B.
+Response Data: Updated Category object.
+
+Endpoint: DELETE /api/categories/:id
+Description: Delete category by ID. Cascade-deletes all sub-categories having this category title as parent.
+Response Data: { "success": true, "message": "Category and its sub-categories deleted successfully" }
+
+----------------------------------------------------------------------
+4. SERVICES MANAGEMENT
+----------------------------------------------------------------------
+Endpoint: GET /api/services
+Description: Retrieve a list of services.
+Response Data: Array of Service objects. If the table contains `category_id`, it is mapped to both `category_id` and `categoryId`.
+
+Endpoint: POST /api/services
+Description: Add a new service.
+Request Body (JSON):
+{
+  "title": "Deep AC Repair",
+  "price": 799.00,
+  "image": "https://url-to-image.png",
+  "description": "Thorough repair and gas charging",
+  "status": true,
+  "categoryId": 3             // Optional/Required depending on foreign key constraints (Alias: "category_id")
+}
+Response Data: Created Service object.
+
+Endpoint: PUT /api/services/:id
+Description: Update service details.
+Request Body (JSON): Accepts title, price, image, description, status, categoryId.
+Response Data: Updated Service object.
+
+Endpoint: DELETE /api/services/:id
+Description: Delete service by ID.
+Response Data: { "success": true, "message": "Service deleted successfully" }
+
+----------------------------------------------------------------------
+5. ORDERS (SERVICE REQUESTS)
+----------------------------------------------------------------------
+Endpoint: GET /api/orders
+Description: Retrieve a list of all service requests/orders. Includes customerName and customerMobile fields.
+Response Data: Array of Order objects. Assigned vendor name 'None' or no vendor maps to database NULL (returns '-' in response).
+
+Endpoint: POST /api/orders
+Description: Create a new order.
+Request Body (JSON):
+{
+  "serviceRequestNumber": "REQ2001",
+  "serviceName": "AC Repair",
+  "serviceAmount": 499.00,
+  "slotTime": "11:00 AM - 01:00 PM",
+  "serviceDate": "20-05-2026",
+  "city": "Delhi",
+  "locality": "Connaught Place",
+  "status": "Pending",
+  "vendorName": "-",          // Use '-' or null if not yet assigned
+  "address": "Block C, Connaught Place, Delhi"
+}
+Response Data: Created Order object.
+
+Endpoint: PUT /api/orders/:id
+Description: Update order details (e.g. assign vendor, update status, change slots). Resolves vendorName by phone number using 'vendorPhone', 'phone', or 'mobile' in request body if provided. Returns 404 if phone number does not map to any partner.
+Request Body (JSON): Supports status, vendorName, vendorPhone, phone, mobile, slotTime, serviceDate, city, locality, address.
+Response Data: Updated Order object.
+
+Endpoint: PUT /api/orders/:id/assign
+Description: Assign or unassign order to/from partner. Resolves vendor name using phone number lookup (via 'vendorPhone', 'phone', or 'mobile' parameters) in the database. Updates status to 'Assigned' if resolved, or 'Pending' if unassigned.
+Request Body (JSON): Supports vendorName, vendorPhone, phone, mobile.
+Response Data: { "success": true, "message": "Order assigned successfully", "data": Order }
+
+Endpoint: DELETE /api/orders/:id
+Description: Delete an order by ID.
+Response Data: { "success": true, "message": "Order deleted successfully" }
+
+----------------------------------------------------------------------
+6. PARTNERS (VENDORS)
+----------------------------------------------------------------------
+Endpoint: GET /api/partners
+Description: Retrieve a list of partners.
+Query Parameters (Optional):
+  - name: Search by partner name (LIKE match)
+  - mobile: Search by mobile number (LIKE match)
+  - city: Filter by city (LIKE match)
+  - state: Filter by state (LIKE match)
+  - date: Filter by joining date (LIKE match)
+  - status: Filter by status ('true'/'false' or '1'/'0')
+  - isApproved: Filter by approval status ('true'/'false' or '1'/'0')
+Response Data: Array of Partner objects (includes countryCode).
+
+Endpoint: GET /api/partners/pending
+Description: Retrieve a list of partners pending approval (isApproved = 0). Supports the same query parameters as the GET /api/partners route. Includes 'isPaid' status ('Paid' or 'Unpaid').
+Response Data: Array of Partner objects.
+
+Endpoint: GET /api/partners/:id
+Description: Get full details of a single partner by ID.
+Response Data: Single Partner object (includes countryCode).
+
+Endpoint: POST /api/partners
+Description: Register a new partner.
+Request Body (JSON):
+{
+  "name": "Suresh Kumar",
+  "email": "suresh@gmail.com",
+  "mobile": "9911223344",
+  "city": "Delhi",
+  "state": "Delhi",
+  "locality": "Dwarka",
+  "address": "Sector 12, Dwarka, Delhi",
+  "image": "https://url.png",
+  "gender": "Male",
+  "experience": "4 Years",
+  "services": ["Plumbing", "AC Repair"],  // Can be array or comma-separated string
+  "aadhaarNumber": "123456789012",
+  "panNumber": "ABCDE1234F",
+  "bankName": "ICICI Bank",
+  "accountNumber": "98765432101",
+  "ifscCode": "ICIC0000456",
+  "documents": ["aadhaar.pdf"]           // Can be array or comma-separated string
+}
+Response Data: Registered Partner object.
+
+Endpoint: PUT /api/partners/:id
+Description: Update partner details. Supports dynamic properties.
+Response Data: Updated Partner object.
+
+Endpoint: PUT /api/partners/:id/approve
+Description: Approve partner. Sets isApproved = 1 and status = 1.
+Response Data: Approved Partner object.
+
+Endpoint: PUT /api/partners/:id/disapprove
+Description: Disapprove partner. Sets isApproved = 0.
+Response Data: Disapproved Partner object.
+
+Endpoint: DELETE /api/partners/:id
+Description: Delete partner by ID.
+Response Data: { "success": true, "message": "Partner deleted successfully" }
+
+Endpoint: PUT /api/partners/:id/password
+Description: Change partner's password. Hashes the new password with bcryptjs and updates it in the database.
+Request Body: { "password": "..." } or { "newPassword": "..." }
+Response Data: { "success": true, "message": "Partner password changed successfully" }
+
+
+----------------------------------------------------------------------
+7. EARNINGS
+----------------------------------------------------------------------
+Endpoint: GET /api/earnings/bookings
+Description: Fetch booking transactions and total aggregates. Each item in the data array includes a 'userDetails' object.
+Query Parameters (Optional):
+  - query: Search transactionId, paymentMethod, extraServicePaymentMethod, or orderDate (LIKE match)
+  - transactionId: Filter by transactionId (LIKE match)
+  - paymentMethod: Filter by paymentMethod (LIKE match)
+  - orderDate: Filter by orderDate (LIKE match)
+  - userId: Filter by user ID
+Response Data Schema:
+{
+  "success": true,
+  "totalBookingEarnings": 2800.00,
+  "totalTransactions": 3,
+  "filteredBookingEarnings": 2800.00,
+  "filteredTransactions": 3,
+  "data": [
+    {
+      "id": 1,
+      "userId": 10000281,
+      "transactionId": "TXN1004",
+      "serviceAmount": 500.00,
+      "paymentMethod": "UPI",
+      "extraServiceAmount": 50.00,
+      "extraServicePaymentMethod": "Cash",
+      "totalAmount": 550.00,
+      "orderDate": "15-05-2026",
+      "userDetails": {
+        "id": 10000281,
+        "name": "Amit Sharma",
+        "email": "amit@gmail.com",
+        "mobile": "9988776655",
+        "address": "Mansarovar, Jaipur",
+        "gender": "Male",
+        "source": "App User (Laravel)",
+        "countryCode": "+91"
+      }
+    }
+  ]
+}
+
+Endpoint: POST /api/earnings/bookings
+Description: Add a new booking transaction.
+Request Body (JSON):
+{
+  "transactionId": "TXN1004",
+  "serviceAmount": 500.00,
+  "paymentMethod": "UPI",
+  "extraServiceAmount": 50.00,
+  "extraServicePaymentMethod": "Cash",
+  "totalAmount": 550.00,
+  "orderDate": "15-05-2026"
+}
+Response Data: Created Transaction object.
+
+Endpoint: GET /api/earnings/subscriptions
+Description: Fetch subscription purchases and aggregates. Each item in the data array includes a 'partnerDetails' object.
+Query Parameters (Optional):
+  - query: Search partnerName, paymentMethod, status, or purchaseDate (LIKE match)
+  - partnerName: Filter by partner name (LIKE match)
+  - paymentMethod: Filter by payment method (LIKE match)
+  - status: Filter by status
+  - purchaseDate: Filter by purchase date (LIKE match)
+  - partnerId: Filter by partner ID
+Response Data Schema:
+{
+  "success": true,
+  "totalSubscriptionsEarnings": 200.00,
+  "totalPlans": 2,
+  "filteredSubscriptionsEarnings": 200.00,
+  "filteredPlans": 2,
+  "data": [
+    {
+      "id": 1,
+      "partnerId": 10000032,
+      "partnerName": "Govind",
+      "amount": 100.00,
+      "paymentMethod": "UPI",
+      "purchaseDate": "16-05-2026",
+      "status": "Paid",
+      "partnerDetails": {
+        "id": 10000032,
+        "name": "Govind",
+        "email": "govindanuragi53@gmail.com",
+        "mobile": "8009073091",
+        "city": "Jaipur",
+        "state": "Rajasthan",
+        "category": "Plumber",
+        "image": "http://localhost:3000/uploads/govind.png",
+        "status": true,
+        "isApproved": true,
+        "source": "App Partner (Laravel)"
+      }
+    }
+  ]
+}
+
+Endpoint: POST /api/earnings/subscriptions
+Description: Add a subscription transaction record.
+Request Body (JSON):
+{
+  "partnerId": 10000032,
+  "partnerName": "Govind",
+  "amount": 100.00,
+  "paymentMethod": "UPI",
+  "purchaseDate": "16-05-2026",
+  "status": "Paid"
+}
+Response Data: Created Subscription Earning object.
+
+----------------------------------------------------------------------
+8. CONTENT PAGES
+----------------------------------------------------------------------
+Endpoint: GET /api/pages
+Description: Retrieve list of all content pages (About Us, Terms and Conditions, Privacy Policy, Refund and Cancellation Policy).
+Note: Table is auto-created and seeded with 4 default pages on server boot if empty.
+Response Data: Array of Page objects.
+
+Endpoint: GET /api/pages/:id
+Description: Fetch a single content page by ID.
+Response Data: Single Page object.
+Error (404): { "success": false, "message": "Page not found" }
+
+Endpoint: POST /api/pages
+Description: Add a new content page.
+Request Body (JSON):
+{
+  "title": "About Us",
+  "description": "We provide the best on-demand home services."
+}
+Response Data: Created Page object.
+
+Endpoint: PUT /api/pages/:id
+Description: Update content page title and/or description.
+Request Body (JSON): { "title": "Updated Title", "description": "Updated content..." }
+Response Data: Updated Page object.
+
+Endpoint: DELETE /api/pages/:id
+Description: Delete a content page by ID.
+Response Data: { "success": true, "message": "Page deleted successfully" }
+
+----------------------------------------------------------------------
+9. CONFIGURATION & SETTINGS
+----------------------------------------------------------------------
+- BANNERS:
+  * GET /api/settings/banners: List all banners. Query param "title" filters (LIKE match).
+  * POST /api/settings/banners: Add banner. Body: { "title": "Offer", "image": "url", "status": true }
+  * PUT /api/settings/banners/:id: Update banner.
+  * DELETE /api/settings/banners/:id: Delete banner.
+
+- STATES:
+  * GET /api/settings/states: List states. Query param "name" filters (LIKE match).
+  * POST /api/settings/states: Add state. Body: { "name": "Haryana", "status": true }
+  * PUT /api/settings/states/:id: Update state.
+  * DELETE /api/settings/states/:id: Delete state. Cascade-deletes all cities and localities under this state name.
+
+- CITIES:
+  * GET /api/settings/cities: List cities. Query params "cityName" and "stateName" filter.
+  * POST /api/settings/cities: Add city. Body: { "cityName": "Gurugram", "stateName": "Haryana", "status": true }
+  * PUT /api/settings/cities/:id: Update city.
+  * DELETE /api/settings/cities/:id: Delete city. Cascade-deletes all localities under this city name.
+
+- LOCALITIES:
+  * GET /api/settings/localities: List localities. Query params "localityName", "cityName", "stateName" filter.
+  * POST /api/settings/localities: Add locality. Body: { "localityName": "Sector 54", "cityName": "Gurugram", "stateName": "Haryana", "status": true }
+  * PUT /api/settings/localities/:id: Update locality.
+  * DELETE /api/settings/localities/:id: Delete locality.
+
+- COMMISSION SETTING:
+  * GET /api/settings/commission: Retrieve commission rate. Response: { "success": true, "commissionRate": 10.0 }
+  * PUT /api/settings/commission: Update commission rate. Body: { "commissionRate": 15.0 }
+
+- COUNTRIES:
+  * GET /api/settings/countries: List countries with name, code, dialCode, flag emoji, and flag SVG link. Returns raw JSON array. Optional query params "name" and "code" filter.
+  * GET /api/settings/country-codes: List registered users and partners with their countryCode, mobile, role, and source database.
+
+
+
+- REVIEWS & RATINGS:
+  * GET /api/settings/reviews: Retrieve reviews list.
+  * POST /api/settings/reviews: Add review. Body: { "userName": "Rahul", "partnerName": "Govind", "serviceName": "AC Repair", "rating": 5.0, "reviewText": "Good" }
+  * PUT /api/settings/reviews/:id: Toggle review status. Body: { "status": true }
+  * DELETE /api/settings/reviews/:id: Delete review.
+
+- NOTIFICATIONS LOGS:
+  * GET /api/settings/notifications: List notification logs. Query params "title", "audience", "status" filter.
+  * POST /api/settings/notifications: Add notification log. Body: { "title": "Alert", "message": "Details", "audience": "All Partners", "status": true }
+  * PUT /api/settings/notifications/:id: Update log / Mark as sent. Body: { "isSent": true }
+  * DELETE /api/settings/notifications/:id: Delete notification.
+
+----------------------------------------------------------------------
+10. REPORTS
+----------------------------------------------------------------------
+Endpoints:
+  - Users Report: GET /api/reports/users
+  - Partners Report: GET /api/reports/partners
+  - Booking Earnings Report: GET /api/reports/earnings
+  - Subscriptions Report: GET /api/reports/subscriptions
+
+Query Parameters (Required):
+  - startDate: Start date filter (DD-MM-YYYY or YYYY-MM-DD format)
+  - endDate: End date filter (DD-MM-YYYY or YYYY-MM-DD format)
+  - query: General search keyword (LIKE match) — pass empty string "" to skip filtering
+  - export: Pass "csv" to download report as a raw CSV file — pass empty string "" for JSON response
+
+Error (400) if any parameter is missing:
+{ "success": false, "message": "startDate, endDate, query, and export parameters are required" }
+
+Example:
+  GET /api/reports/users?startDate=01-05-2026&endDate=31-05-2026&query=Rahul&export=
+  GET /api/reports/users?startDate=01-05-2026&endDate=31-05-2026&query=&export=csv
+
+----------------------------------------------------------------------
+11. SUPPORT TICKETS
+----------------------------------------------------------------------
+Endpoint: GET /api/support
+Description: Retrieve support tickets list. Enriched with partnerId and resolved partner profile image/documents.
+Query Parameters (Optional):
+  - query: Search UserName, Email, Subject, or Message (LIKE match)
+  - status: Filter by status (Open, Closed, etc.)
+Response Data: Array of Ticket objects.
+
+Endpoint: GET /api/support/:id
+Description: Fetch details of a single ticket by ID. Enriched with partnerId and resolved partner profile image/documents.
+Response Data: Ticket object.
+
+Endpoint: POST /api/support
+Description: File a new support ticket.
+Request Body (JSON):
+{
+  "userName": "Rahul",
+  "email": "rahul@gmail.com",
+  "mobile": "9876543210",
+  "subject": "AC cooling issue",
+  "message": "The repair did not fix the cooling problem.",
+  "partnerId": 123                              // Optional
+}
+Response Data: Created Support Ticket object (enriched with resolved partner details and partnerId).
+
+Endpoint: PUT /api/support/:id
+Description: Update support ticket status/details.
+Request Body (JSON): { "status": "Closed", "partnerId": 123 }
+Response Data: Updated Ticket object.
+
+Endpoint: DELETE /api/support/:id
+Description: Delete support ticket by ID.
+Response Data: { "success": true, "message": "Ticket deleted successfully" }
+
+----------------------------------------------------------------------
+12. IMAGE UPLOAD
+----------------------------------------------------------------------
+Endpoint: POST /api/upload
+Description: Upload an image file (multipart/form-data) to the server and receive a dynamically hosted URL.
+Request Format: multipart/form-data
+Body Field:
+  - image: The image file to upload (JPEG, JPG, PNG, GIF, WEBP allowed). Max size 5MB.
+Response:
+{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "filename": "1780120322787-108485750.png",
+    "originalName": "avatar.png",
+    "mimetype": "image/png",
+    "size": 15420,
+    "url": "http://localhost:3000/uploads/1780120322787-108485750.png"
+  }
+}
+
+Statically Served Assets:
+URL: http://localhost:3000/uploads/:filename
+Description: Uploaded image files are publicly available and can be served statically by appending the filename to the host's `/uploads` path.
+
+----------------------------------------------------------------------
+12.5. DYNAMIC ADMIN ACCOUNTS (FOR NORMAL ADMINS)
+----------------------------------------------------------------------
+Endpoint: GET /api/admins
+Description: Fetch all registered normal admin accounts. Auto-rotates passwords if older than 24 hours. Returns list with time remaining.
+Response Data: { "success": true, "data": [ { "id": 1, "email": "admin@example.com", "username": "admin_username", "password": "current_password", "lastGeneratedAt": "...", "timeRemaining": "23h 59m" } ] }
+
+Endpoint: POST /api/admins
+Description: Register a new normal admin email. Generates initial admin username and password.
+Request Body (JSON): { "email": "admin@example.com" }
+Response Data: { "success": true, "message": "Admin account registered successfully", "data": { "email": "admin@example.com", "username": "admin_username", "password": "current_password" } }
+
+Endpoint: DELETE /api/admins/:id
+Description: Delete an admin account by ID.
+Response Data: { "success": true, "message": "Admin account deleted successfully" }
+
+Endpoint: POST /api/admins/login
+Description: Login normal admin. Validates credentials and checks if the daily password has expired.
+Request Body (JSON): { "username": "admin_username", "password": "current_password" }
+Response Data: { "success": true, "message": "Login successful", "data": { "id": 1, "email": "admin@example.com", "username": "admin_username", "role": "admin" } }
+
+----------------------------------------------------------------------
+12.8. STATIC SUPER ADMIN ACCOUNTS (LOCAL/CLIENT-SIDE BYPASS)
+----------------------------------------------------------------------
+The following accounts bypass backend authentication and always retain "super_admin" access (static forever):
+- jitendar@gmail.com (or username "jitendar") - Password: Jitendar1184@*
+- neha@gmail.com (or username "neha") - Password: Neha1184@*
+- nirav@gmail.com (or username "nirav") - Password: Nirav1184@*
+- swayam@gmail.com (or username "swayam") - Password: Swayam1184@*
+- superadmin@gmail.com - Password: Home1184@*
+
+----------------------------------------------------------------------
+13. PARTNER MOBILE APP ENDPOINTS
+----------------------------------------------------------------------
+
+13.1 REGISTER AS NEW PARTNER
+---------------------------
+Endpoint: POST /api/auth/register
+Request Format: multipart/form-data
+Description: Registers a new partner. Uploads documents and hashes the password.
+Request Fields (Text): name, phone (mobile), countryCode (optional), email, address, state, city, locality, password, gender, category, subCategory, hasVehicle, services, aadharNumber, panNumber, bankName, accountHolder, accountNumber, ifscCode.
+Request Fields (Files - MANDATORY): profileImage, aadharFront, aadharBack, panImage, policeVerification.
+Response: Returns partner profile information (including countryCode), token, and order/payment details.
+
+13.2 LOGIN PARTNER
+-----------------
+Endpoint: POST /api/auth/login
+Request Format: application/json
+Description: Logs in a partner using their phone number, country code, and password.
+Request Body: { "phone": "...", "countryCode": "...", "password": "..." }
+Response: Returns partner profile details (including countryCode) and auth token.
+
+13.2.1 FORGOT PASSWORD
+----------------------
+Endpoint: POST /api/auth/forgot-password
+Request Format: application/json
+Description: Resets the password for a registered mobile number.
+Request Body: { "phone": "...", "countryCode": "...", "newPassword": "..." }
+Response: { "success": true, "message": "...", "countryCode": "..." }
+
+13.3 UNIFIED PARTNER DASHBOARD
+------------------------------
+Endpoint: GET /api/partner/dashboard (PROTECTED - Requires Bearer Token)
+Description: Retrieves active banners, booking stats, monthly and daily earnings, and partner payment/approval status in a single aggregated payload.
+Response Example:
+{
+  "isPaid": true,
+  "isApproved": true,
+  "bookingsStats": { "totalBooking": 5, "upcomingBooking": 2, "inProgressBooking": 1, "acceptedBooking": 3, "completedBooking": 2, "cancelBooking": 1 },
+  "earningsStats": { "totalEarning": 25000, "todayEarning": 10000, "monthlyEarning": 15000, "onlineEarning": 12000, "cashEarning": 13000, "payToCompany": 3250.00, "walletBalance": 8750.00 },
+  "banners": [ "http://localhost:3000/uploads/banner1.jpg" ]
+}
+
+13.4 BOOKING WORK LIFECYCLE
+---------------------------
+* GET /api/bookings/:id (PROTECTED)
+  - Fetches full details of a single booking by ID.
+* POST /api/bookings/:id/start (PROTECTED)
+  - Moves booking status to 'In Progress'.
+* POST /api/bookings/send-complete-otp (PROTECTED)
+  - Generates and sends a 4-digit completion OTP to the customer phone number. Body: { "phone": "...", "countryCode": "...", "orderId": "..." }
+* POST /api/bookings/:id/complete (PROTECTED)
+  - Completes booking, processes commission, updates wallet/earnings, and logs transaction. Requires OTP verification. Body: { "paymentMethod": "Cash" / "UPI", "otp": "...", "customerPhone": "..." }. For Cash, 25% commission is added to payToCompany (due to company) and wallet balance is not credited. For UPI, standard commission rate is used and partner's share is credited to wallet balance. Bypass OTP with '1234'.
+
+13.5 DYNAMIC REGISTRATION DROPDOWNS
+-----------------------------------
+* GET /api/metadata/locations (PUBLIC)
+  - Fetches nested active states, cities, and localities hierarchy.
+* GET /api/metadata/categories (PUBLIC)
+  - Fetches active categories and nested subcategories with service title lists.
+* GET /api/countries (PUBLIC)
+  - Returns a list of all countries with flags, calling codes, 2-letter ISO codes (isoCode), flag image CDN URLs (flagUrl), minLength, and maxLength properties for phone validation.
+* GET /api/settings/version (PUBLIC)
+  - Get app version configuration for Android and iOS. Returns: { "success": true, "android": { "latestVersion": "1.0.3", "minSupportedVersion": "1.0.2", "forceUpdate": false }, "ios": { "latestVersion": "1.0.4", "minSupportedVersion": "1.0.3", "forceUpdate": true } }.
+
+13.6 PHONE OTP VERIFICATION
+---------------------------
+* POST /api/auth/send-otp (PUBLIC)
+  - Request a 4-digit OTP code for a phone number. Body: { "phone": "...", "countryCode": "..." (optional, defaults to "+91") }. Returns: { "success": true, "message": "...", "otp": "...", "countryCode": "..." } (returned for debugging/testing).
+* POST /api/auth/verify-otp (PUBLIC)
+  - Verify the requested OTP code for a phone number. Body: { "phone": "...", "otp": "...", "countryCode": "..." (optional, defaults to "+91") }. Returns: { "success": true, "message": "...", "countryCode": "..." }.
+* POST /api/partner/location (and alias POST /api/partner/update-location) (PROTECTED)
+  - Update partner coordinates and time. Body: { partnerId, token, lat, lon, time }.
+* GET /api/partner/location (and aliases GET /api/partner/location/:id & GET /api/partner/:id/location) (PUBLIC / PROTECTED)
+  - Retrieve partner coordinates and time.
+* POST /api/partner/status (and alias PUT /api/partner/status) (PROTECTED)
+  - Update partner status (online/offline) and coordinates. Body: { "status": true/false/1/0, "lat": "...", "lon": "...", "time": "..." }.
+
+
+======================================================================
+REFER & EARN API DOCUMENTATION
+======================================================================
+Added: 2026-06-30
+Base URL: https://partner-backend-2.onrender.com/api
+
+BUSINESS RULES:
+  - Partner A refers Partner B using their unique referral code (e.g., HF000001)
+  - Partner B registers using that code → ₹500 added as LOCKED to Partner A's wallet
+  - Partner B must complete 5 orders within 5 days of registration to UNLOCK the ₹500
+  - Every order Partner B completes → ₹50 credited DIRECTLY to Partner A (available)
+  - Level 2: if Partner A was also referred by someone, that referrer gets ₹20/order
+  - If 5 orders not completed within 5 days → ₹500 EXPIRES (not paid out)
+  - Self-referral is NOT allowed
+
+DATABASE TABLES ADDED:
+  - node_referrals: tracks referral relationships (who referred whom, deadline, progress)
+  - node_referral_earnings: logs every earning event (referral_bonus or order_bonus)
+  - node_partners: 4 new columns: referral_code, referredBy, availableWallet, lockedWallet
+
+REFERRAL CODES:
+  - Format: HF + partner_id padded to 6 digits (e.g., HF000001, HF000042, HF000100)
+  - Auto-generated for all existing partners on migration
+
+----------------------------------------------------------------------
+R1. GET /api/referral/code  (PROTECTED — Bearer token required)
+----------------------------------------------------------------------
+Description: Get my referral code, shareable link and share message.
+Response: 200 OK
+{
+  "success": true,
+  "referralCode": "HF000042",
+  "shareLink": "https://homefaciliti.com/partner/join?ref=HF000042",
+  "shareMessage": "Join me on Home Faciliti as a service partner and earn money! Use my referral code *HF000042* while registering to get started. Sign up here: https://...",
+  "rewards": {
+    "referralBonus": "₹500 (locked — unlocks after referred partner completes 5 orders in 5 days)",
+    "orderBonus": "₹50 per order completed by referred partner (directly withdrawable)",
+    "orderBonusL2": "₹20 per order for level 2 referrals"
+  }
+}
+
+----------------------------------------------------------------------
+R2. POST /api/referral/validate  (PUBLIC — no auth required)
+----------------------------------------------------------------------
+Description: Validate a referral code before/during registration.
+             Call this when user enters referral code in register form.
+Request Body: { "referralCode": "HF000001" }
+Response: 200 OK — valid code
+{
+  "valid": true,
+  "referralCode": "HF000001",
+  "referrerName": "Govind",
+  "message": "Valid referral code by Govind. You will both earn rewards after you complete 5 orders!"
+}
+Response: 404 — invalid code
+{
+  "valid": false,
+  "error": "Invalid referral code. No approved partner found with this code."
+}
+
+----------------------------------------------------------------------
+R3. POST /api/auth/register  (Updated — now accepts referralCode)
+----------------------------------------------------------------------
+Description: Registration endpoint now accepts optional referralCode field.
+             On successful registration, if valid code provided:
+             - ₹500 locked bonus is credited to referrer's lockedWallet
+             - referral row is created with 5-day deadline
+Request Body (unchanged fields + new optional field):
+{
+  ... (all existing registration fields) ...
+  "referralCode": "HF000001"   // OPTIONAL — referral code of the referring partner
+}
+Response: Same as before (201 Created)
+Note: Self-referral is silently ignored (no error returned)
+
+----------------------------------------------------------------------
+R4. GET /api/referral/stats  (PROTECTED — Bearer token required)
+----------------------------------------------------------------------
+Description: Get complete referral stats, wallet balances, and list of people I referred.
+Response: 200 OK
+{
+  "success": true,
+  "referralCode": "HF000042",
+  "shareLink": "https://homefaciliti.com/partner/join?ref=HF000042",
+  "wallet": {
+    "available": 150.00,    // directly withdrawable
+    "locked": 500.00,       // locked (waiting for 5-order unlock condition)
+    "total": 650.00
+  },
+  "earnings": {
+    "orderBonus": 150.00,   // sum of all ₹50 order bonuses earned
+    "referralBonus": 0.00,  // sum of ₹500 bonuses that have been unlocked
+    "locked": 500.00,       // total amount still locked
+    "total": 150.00         // total available earnings
+  },
+  "referralCount": 2,
+  "referrals": [
+    {
+      "referralId": 1,
+      "partnerName": "Rahul Sharma",
+      "phone": "9876543210",
+      "isApproved": true,
+      "status": "pending",           // pending | unlocked | expired
+      "ordersCompleted": 3,
+      "ordersNeeded": 5,
+      "unlockDeadline": "2026-07-05T00:00:00.000Z",
+      "lockedReward": 500.00,
+      "createdAt": "2026-06-30T10:00:00.000Z",
+      "unlockedAt": null,
+      "expiredAt": null
+    },
+    {
+      "referralId": 2,
+      "partnerName": "Priya Singh",
+      "phone": "8765432109",
+      "isApproved": true,
+      "status": "unlocked",
+      "ordersCompleted": 5,
+      "ordersNeeded": 5,
+      "unlockDeadline": "2026-07-03T00:00:00.000Z",
+      "lockedReward": 500.00,
+      "createdAt": "2026-06-28T10:00:00.000Z",
+      "unlockedAt": "2026-06-30T08:45:00.000Z",
+      "expiredAt": null
+    }
+  ]
+}
+
+----------------------------------------------------------------------
+R5. GET /api/referral/history  (PROTECTED — Bearer token required)
+----------------------------------------------------------------------
+Description: Full paginated earnings transaction history (order bonuses + referral bonuses).
+Query Params:
+  - page  (optional, default: 1)
+  - limit (optional, default: 20)
+Response: 200 OK
+{
+  "success": true,
+  "page": 1,
+  "limit": 20,
+  "total": 5,
+  "history": [
+    {
+      "id": 1,
+      "type": "order_bonus",           // order_bonus | referral_bonus
+      "amount": 50.00,
+      "status": "available",           // available | locked | withdrawn
+      "level": 1,                      // 1=direct, 2=indirect
+      "bookingId": "123",
+      "fromPartner": "Rahul Sharma",   // the referred partner who triggered this
+      "createdAt": "2026-06-30T10:00:00.000Z",
+      "description": "₹50 order bonus from Rahul Sharma (Level 1)"
+    },
+    {
+      "id": 2,
+      "type": "referral_bonus",
+      "amount": 500.00,
+      "status": "locked",
+      "level": 1,
+      "bookingId": null,
+      "fromPartner": "Rahul Sharma",
+      "createdAt": "2026-06-30T09:00:00.000Z",
+      "description": "₹500 referral bonus (locked)"
+    }
+  ]
+}
+
+----------------------------------------------------------------------
+AUTOMATIC TRIGGERS (Internal — happen in background)
+----------------------------------------------------------------------
+1. On POST /bookings/:id/complete:
+   - creditReferralOrderBonus() is called automatically
+   - ₹50 credited to Level 1 referrer's availableWallet
+   - ₹20 credited to Level 2 referrer's availableWallet (if applicable)
+   - orders_done counter incremented on the referral row
+   - If orders_done >= 5 AND within deadline: ₹500 UNLOCKED (moved from lockedWallet to availableWallet)
+   - If deadline passed: referral EXPIRED (₹500 removed from lockedWallet)
+
+2. On POST /auth/register (with referralCode in body):
+   - Referral row created with 5-day unlock_deadline
+   - ₹500 logged as locked earning for referrer
+   - referrer's lockedWallet += 500
+   - Partner's referredBy field updated
+
+WALLET FIELDS ON PARTNER:
+  - availableWallet: sum of all directly withdrawable earnings (order bonuses + unlocked referral bonuses)
+  - lockedWallet:    sum of ₹500 referral bonuses waiting for the 5-order unlock condition
+  - (total referral wallet = availableWallet + lockedWallet)
+
+NOTE: The availableWallet and lockedWallet are SEPARATE from the main walletBalance field
+      which tracks booking service earnings. The referral wallet is purely for referral rewards.
+
+

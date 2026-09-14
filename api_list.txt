@@ -1,0 +1,333 @@
+======================================================================
+HOME FACILITI BACKEND REST API ENDPOINTS - COMPLETE INDEX
+======================================================================
+Base URL: https://partner-backend-2.onrender.com/api (Local: http://localhost:5000/api)
+
+----------------------------------------------------------------------
+1. IMAGE UPLOAD
+----------------------------------------------------------------------
+* POST /api/upload
+  - Upload image file (multipart/form-data, field 'image')
+  - Response: { "url": "http://localhost:5000/uploads/..." }
+
+----------------------------------------------------------------------
+2. USERS MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/users
+  - Fetch all users (includes 'countryCode' field). Optional query params: 'query', 'name', 'email', 'mobile'.
+* POST /api/users
+  - Create a new user. Body: { "name": "...", "email": "...", "mobile": "...", "address": "..." }
+* PUT /api/users/:id
+  - Update user details by ID.
+* DELETE /api/users/:id
+  - Delete user by ID.
+
+----------------------------------------------------------------------
+3. PARTNERS (VENDORS) MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/partners
+  - Fetch all partners (includes 'countryCode' field). Optional query params: 'search', 'name', 'mobile', 'category', 'state', 'city', 'locality', 'paymentStatus' / 'isPaid' / 'payment', 'status', 'isApproved'.
+* GET /api/partners/pending
+  - Fetch partners pending approval (isApproved = 0). Includes 'isPaid' status ('Paid' or 'Unpaid'). Supports the same query parameters as GET /api/partners.
+* GET /api/partners/filter-options
+  - Fetch unique, non-empty, trimmed, and alphabetically sorted categories, states, cities, and localities options. Supports dependent query parameters:
+    - ?state=Rajasthan -> limits cities and localities to Rajasthan
+    - ?state=Rajasthan&city=Jaipur -> limits localities to Jaipur
+* GET /api/partners/:id
+  - Fetch details of a single partner by ID.
+* POST /api/partners
+  - Register a new partner. Body: { "name": "...", "email": "...", "mobile": "...", "city": "...", "state": "...", "locality": "...", "address": "...", "image": "...", "gender": "...", "experience": "...", "services": [...], "aadhaarNumber": "...", "panNumber": "...", "bankName": "...", "accountNumber": "...", "ifscCode": "...", "documents": [...] }
+* PUT /api/partners/:id
+  - Update partner details.
+* PUT /api/partners/:id/approve
+  - Approve partner. Sets isApproved = 1 and status = 1.
+* PUT /api/partners/:id/disapprove
+  - Disapprove partner. Sets isApproved = 0.
+* PUT /api/partners/:id/mark-paid
+  - Mark partner as paid, approved, active, sync tables, and log subscription transaction.
+* DELETE /api/partners/:id
+  - Delete partner by ID.
+* PUT /api/partners/:id/password
+  - Change partner's password. Body: { "password": "..." } or { "newPassword": "..." }
+
+
+----------------------------------------------------------------------
+4. CATEGORIES MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/categories
+  - Fetch list of all categories. Query params: 'title' (or 'categoryName'), 'parent' (or 'mainCategory'), 'status'.
+* POST /api/categories
+  - Create a new category. Body: { "title": "...", "parent": "...", "image": "...", "status": true }
+* PUT /api/categories/:id
+  - Update category details by ID.
+* DELETE /api/categories/:id
+  - Delete category by ID (cascade-deletes all sub-categories).
+
+----------------------------------------------------------------------
+5. SERVICES MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/services
+  - Fetch list of all services.
+* POST /api/services
+  - Create a new service. Body: { "title": "...", "price": 499.0, "image": "...", "description": "...", "status": true, "categoryId": 3 }
+* PUT /api/services/:id
+  - Update service details by ID.
+* DELETE /api/services/:id
+  - Delete service by ID.
+
+----------------------------------------------------------------------
+6. ORDERS / BOOKINGS MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/orders
+  - Fetch list of all bookings. Returns customerName and customerMobile fields.
+* POST /api/orders
+  - Create a new booking/order. Body: { "serviceRequestNumber": "...", "serviceName": "...", "serviceAmount": 299.0, "slotTime": "...", "serviceDate": "...", "city": "...", "locality": "...", "status": "...", "vendorName": "...", "address": "...", "latitude": "26.8258", "longitude": "75.7429" }
+  - Note: If latitude and longitude are provided and no vendorName is specified, the system automatically assigns the order to the closest active, paid, and approved partner matching the service within a 5 km (or 10 km fallback) radius.
+* PUT /api/orders/:id
+  - Update booking status or vendor details. Supports resolving vendorName by phone number using 'vendorPhone', 'phone', or 'mobile' in body. If phone number is found in partners database, resolves to their name; if not found, returns 404.
+* PUT /api/orders/:id/assign
+  - Assign or unassign order to/from partner. Body: { "vendorName": "...", "vendorPhone": "...", "phone": "...", "mobile": "..." }. Resolves partner name using phone number lookup in database. Updates status to 'Assigned' when assigned, or 'Pending' if unassigned.
+* DELETE /api/orders/:id
+  - Delete booking by ID.
+
+----------------------------------------------------------------------
+7. EARNINGS MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/earnings/bookings
+  - Fetch history of all booking earnings and aggregates. Each item includes 'userDetails' object. Optional query: 'query', 'transactionId', 'paymentMethod', 'orderDate', 'userId'.
+* POST /api/earnings/bookings
+  - Save booking earning transaction. Body: { "userId": 5, "transactionId": "...", "serviceAmount": 499.0, "paymentMethod": "...", "extraServiceAmount": 0.0, "extraServicePaymentMethod": "...", "totalAmount": 499.0, "orderDate": "..." }
+* GET /api/earnings/subscriptions
+  - Fetch history of all partner subscriptions and aggregates. Each item includes 'partnerDetails' object. Optional query: 'query', 'partnerName', 'paymentMethod', 'status', 'purchaseDate', 'partnerId'.
+* POST /api/earnings/subscriptions
+  - Save partner subscription transaction. Body: { "partnerId": 12, "partnerName": "...", "amount": 999.0, "paymentMethod": "...", "purchaseDate": "...", "status": "Paid" }
+
+----------------------------------------------------------------------
+8. CONTENT PAGES
+----------------------------------------------------------------------
+* GET /api/pages
+  - Fetch list of all content pages (About, Terms, Privacy, Refund).
+* GET /api/pages/:id
+  - Fetch a single content page by ID.
+* POST /api/pages
+  - Add a new content page. Body: { "title": "...", "description": "..." }
+* PUT /api/pages/:id
+  - Update content page title and/or description.
+* DELETE /api/pages/:id
+  - Delete a content page by ID.
+
+----------------------------------------------------------------------
+9. ADMIN DASHBOARD STATISTICS
+----------------------------------------------------------------------
+* GET /api/dashboard
+  - Fetch admin panel summary dashboard statistics (counts and total earnings).
+* GET /api/dashboard/pending-partners
+  - Fetch list of pending approval partners to display on the dashboard.
+
+----------------------------------------------------------------------
+10. REPORTS & EXPORTS
+----------------------------------------------------------------------
+* GET /api/reports/users
+  - Fetch users report dataset. Required query: 'startDate', 'endDate', 'query', 'export'.
+* GET /api/reports/partners
+  - Fetch partners report dataset. Required query: 'startDate', 'endDate', 'query', 'export'.
+* GET /api/reports/earnings
+  - Fetch booking earnings report dataset. Required query: 'startDate', 'endDate', 'query', 'export'.
+* GET /api/reports/subscriptions
+  - Fetch subscriptions report dataset. Required query: 'startDate', 'endDate', 'query', 'export'.
+
+----------------------------------------------------------------------
+11. SUPPORT TICKETS MANAGEMENT
+----------------------------------------------------------------------
+* GET /api/support
+  - Fetch all support tickets. Optional query params: 'query', 'status'. Automatically resolves and maps sender's partner details (partnerImage, partnerDocuments, partner object, and partnerId) using mobile number, falling back to default SVGs if empty/missing on disk.
+* GET /api/support/:id
+  - Fetch details of a single support ticket by ID. Enriched with resolved partner profile image, documents, partnerId, and fallback placeholders.
+* POST /api/support
+  - Create a support ticket. Body: { "userName": "...", "email": "...", "mobile": "...", "subject": "...", "message": "...", "partnerId": 123 (optional) }. Enriches response data with resolved partner details and partnerId.
+* PUT /api/support/:id
+  - Update support ticket status/details. Body: { "status": "Closed", "partnerId": 123 (optional) }. Returns updated ticket with resolved partner details.
+* DELETE /api/support/:id
+  - Delete support ticket by ID.
+
+----------------------------------------------------------------------
+12. CONFIGURATION & SETTINGS
+----------------------------------------------------------------------
+- BANNERS:
+  * GET /api/settings/banners - List all banners. Query param 'title' filters.
+  * POST /api/settings/banners - Add banner. Body: { "title": "...", "image": "...", "status": true }
+  * PUT /api/settings/banners/:id - Update banner details.
+  * DELETE /api/settings/banners/:id - Delete banner.
+  * PUT/PATCH /api/settings/banners/:id/status - Toggle banner status. Body: { "status": true }
+
+- STATES:
+  * GET /api/settings/states - List active states. Query param 'name' filters.
+  * POST /api/settings/states - Add state. Body: { "name": "...", "status": true }
+  * PUT /api/settings/states/:id - Update state details.
+  * DELETE /api/settings/states/:id - Delete state and cascade-deletes its cities and localities.
+  * PUT/PATCH /api/settings/states/:id/status - Toggle state status. Body: { "status": true }
+
+- CITIES:
+  * GET /api/settings/cities - List active cities. Query params 'cityName', 'stateName' filter.
+  * POST /api/settings/cities - Add city. Body: { "cityName": "...", "stateName": "...", "status": true }
+  * PUT /api/settings/cities/:id - Update city details.
+  * DELETE /api/settings/cities/:id - Delete city and cascade-deletes its localities.
+  * PUT/PATCH /api/settings/cities/:id/status - Toggle city status. Body: { "status": true }
+
+- LOCALITIES:
+  * GET /api/settings/localities - List active localities. Query params 'localityName', 'cityName', 'stateName' filter.
+  * POST /api/settings/localities - Add locality. Body: { "localityName": "...", "cityName": "...", "stateName": "...", "status": true }
+  * PUT /api/settings/localities/:id - Update locality details.
+  * DELETE /api/settings/localities/:id - Delete locality.
+  * PUT/PATCH /api/settings/localities/:id/status - Toggle locality status. Body: { "status": true }
+
+- COMMISSION SETTING:
+  * GET /api/settings/commission - Retrieve commission rate.
+  * PUT /api/settings/commission - Update commission rate. Body: { "commissionRate": 15.0 }
+
+- COUNTRIES:
+  * GET /api/settings/countries - List all countries with name, code, dialCode, flag emoji, and flag SVG link. Returns raw JSON array of country objects. Optional query params 'name' (searches name case-insensitively) and 'code' (exact match country code, e.g. 'IN') filter the results.
+  * GET /api/settings/country-codes - Retrieve the list of all registered users and partners alongside their countryCode, mobile number, role, and source database.
+
+
+
+- REVIEWS & RATINGS:
+  * GET /api/settings/reviews - Retrieve public reviews list.
+  * POST /api/settings/reviews - Add review. Body: { "userName": "...", "partnerName": "...", "serviceName": "...", "rating": 5.0, "reviewText": "..." }
+  * PUT /api/settings/reviews/:id/status - Toggle review status. Body: { "status": true }
+  * DELETE /api/settings/reviews/:id - Delete review.
+
+- NOTIFICATIONS LOGS:
+  * GET /api/settings/notifications - List notification logs.
+  * POST /api/settings/notifications - Add notification. Body: { "title": "...", "message": "...", "audience": "...", "status": true }
+  * PUT /api/settings/notifications/:id - Update notification / Mark as sent. Body: { "isSent": true }
+  * DELETE /api/settings/notifications/:id - Delete notification.
+
+----------------------------------------------------------------------
+12.5. DYNAMIC ADMIN ACCOUNTS (FOR NORMAL ADMINS)
+----------------------------------------------------------------------
+* GET /api/admins
+  - Fetch all registered normal admin accounts. Auto-rotates passwords if older than 24 hours. Returns list with time remaining.
+* POST /api/admins
+  - Register a new normal admin email. Body: { "email": "admin@example.com" }. Generates initial admin username and password.
+* DELETE /api/admins/:id
+  - Delete an admin account by ID.
+* POST /api/admins/login
+  - Login normal admin. Body: { "username": "admin_username", "password": "current_password" }. Validates credentials and checks if expired.
+
+----------------------------------------------------------------------
+12.8. STATIC SUPER ADMIN ACCOUNTS (LOCAL/CLIENT-SIDE BYPASS)
+----------------------------------------------------------------------
+The following accounts bypass backend authentication and always retain "super_admin" access (static forever):
+* jitendar@gmail.com (or username "jitendar") - Password: Jitendar1184@*
+* neha@gmail.com (or username "neha") - Password: Neha1184@*
+* nirav@gmail.com (or username "nirav") - Password: Nirav1184@*
+* swayam@gmail.com (or username "swayam") - Password: Swayam1184@*
+* superadmin@gmail.com - Password: Home1184@*
+
+----------------------------------------------------------------------
+13. PARTNER MOBILE APP ENDPOINTS
+----------------------------------------------------------------------
+- AUTHENTICATION:
+  * POST /api/auth/register - Register a partner (multipart/form-data). Body: { countryCode (optional) }. Mandatory files: profileImage, aadharFront, aadharBack, panImage, policeVerification. Returns: { token, amount: 500, partnerId, razorpayKeyId, razorpayOrderId, partner, countryCode } (Note: Tokens are valid indefinitely / do not expire).
+  * POST /api/auth/login - Login partner using phone, countryCode (optional), and password. Returns: { token, partnerId, razorpayKeyId, razorpayOrderId, partner, countryCode } (Note: Tokens do not expire).
+  * POST /api/auth/forgot-password - Reset password for a mobile number. Body: { phone, newPassword, countryCode (optional) }. Returns: { success: true, message: 'Password reset successful!', countryCode }.
+  * POST /api/auth/logout - End partner session.
+  * POST /api/auth/send-otp - Request a 4-digit OTP code for a phone number. Body: { phone, countryCode (optional) }. Returns: { success: true, message: 'OTP sent successfully', otp, countryCode }.
+  * POST /api/auth/verify-otp - Verify the requested OTP code for a phone number. Body: { phone, otp, countryCode (optional) }. Returns: { success: true, message: 'Phone number verified successfully', countryCode }.
+
+- PROFILE (PROTECTED):
+  * GET /api/partner/profile - Fetch authenticated partner details.
+  * PUT /api/partner/profile - Update partner details and profile image.
+  * POST /api/partner/change-password - Update password.
+
+- REGISTRATION FEE & WALLET (PROTECTED):
+  * POST /api/partner/pay-registration - Pay ₹500 registration fee. Body: { "partnerId": 10, "transactionId": "TXN_123" } (transactionId is required). Returns: { success: true, message: "...", amount: 500, razorpayKeyId: "...", razorpayOrderId: "...", partner: { ... } }
+  * GET/POST /api/payments/verify - Verify Razorpay signature & activate partner. GET (redirect) returns premium HTML page; POST returns JSON. Body/Query: { razorpay_payment_id, razorpay_signature, partnerId (optional), ... }
+  * GET /api/partner/pay-redirect - Redirect to Razorpay hosted payment page pre-filled with partner details. Query params: ?partnerId=<id>
+  * GET /api/earnings - Fetch partner total, daily, monthly, online, and cash earnings.
+
+- BOOKINGS LIFECYCLE (PROTECTED):
+  * GET /api/bookings - Fetch bookings assigned to this partner. Filter: '?status=upcoming/completed/cancel/in_progress'.
+  * GET /api/bookings/:id - Fetch details of a single booking by ID.
+  * GET /api/bookings/stats - Fetch bookings counts (total, upcoming, in-progress, accepted, completed, cancelled).
+  * POST /api/bookings/:id/accept - Accept booking.
+  * POST /api/bookings/:id/reject - Reject booking (unassigns partner).
+  * POST /api/bookings/:id/start - Start order work (sets status to 'In Progress'). Requires partner to be online.
+  * POST /api/bookings/send-complete-otp - Generate and send completion verification OTP to customer. Body: { phone, countryCode, orderId }.
+  * POST /api/bookings/:id/complete - Complete order work. Requires OTP verification. Body: { paymentMethod, otp, customerPhone }.
+  * GET /api/bookings/pending-popup - Fetch next available pending order for popup alerts.
+
+- PARTNER SERVICES & METADATA (PUBLIC):
+  * GET /api/countries - Fetch list of all countries with names, country calling codes, flag emojis, 2-letter ISO codes (isoCode), flag image CDN links (flagUrl), minLength, and maxLength properties for phone validation.
+  * GET /api/metadata/locations - Fetch nested State -> City -> Locality dropdown hierarchy.
+  * GET /api/metadata/categories - Fetch nested Category -> Subcategory -> Services dropdown hierarchy.
+  * GET /api/locations/states - List active states names array.
+  * GET /api/locations/cities - List active cities names array for a state. Param: '?state=StateName'.
+  * GET /api/locations/localities - List active localities names array for a city. Param: '?city=CityName'.
+  * GET /api/services/categories - List active main categories.
+  * GET /api/services/subcategories - List subcategories under a main category. Param: '?category=CategoryName'.
+  * GET /api/services/list-by-category - List service titles under a category. Param: '?category=CategoryName'.
+
+- SUPPORT & REVIEWS (PROTECTED):
+  * POST /api/partner/support - Register support ticket. Body: { "subject": "...", "message": "..." }
+  * GET /api/partner/support - Fetch own registered support tickets. Returned tickets are enriched with partner profile image, documents, and nested partner object with fallback placeholder SVGs.
+  * GET /api/partner/reviews - Fetch reviews written by customers about this partner.
+  * GET /api/partner/dashboard - Fetch active banners, booking stats, earnings stats, and status in one payload. Returns: { id, isPaid, isApproved, razorpayKeyId, razorpayOrderId, bookingsStats, earningsStats, banners } (returns 0 stats if not paid or not approved).
+  * GET /api/partner/approval-status & POST /api/partner/approval-status - Check partner approval and payment status. Accepts JWT token and optional partnerId in headers, query, or body.
+  * GET /api/partner/dashboard-status & POST /api/partner/dashboard-status - Check partner approval and payment status (alias endpoint).
+  * POST /api/partner/location & POST /api/partner/update-location - Update partner coordinates and time. Body: { partnerId, token, lat, lon, time }.
+  * GET /api/partner/location (and aliases GET /api/partner/location/:id & GET /api/partner/:id/location) - Retrieve partner coordinates and time.
+  * POST /api/partner/status & PUT /api/partner/status - Toggle partner online/offline status and update coordinates at the same time. Body: { "status": true/false/1/0, "lat": "...", "lon": "...", "time": "..." }.
+- SETTINGS / VERSION (PUBLIC):
+  * GET /api/settings/version - Get app version configuration for Android and iOS. Returns: { success, android: { latestVersion, minSupportedVersion, forceUpdate }, ios: { latestVersion, minSupportedVersion, forceUpdate } }
+
+----------------------------------------------------------------------
+15. AMC (ANNUAL MAINTENANCE CONTRACT) MANAGEMENT
+----------------------------------------------------------------------
+- DASHBOARD APIS:
+  * GET /api/amc/dashboard - Summary stats (total/active/expired contracts, today's visits, revenue).
+  * GET /api/amc/dashboard/recent-orders - Recent AMC bookings.
+  * GET /api/amc/dashboard/today-visits - AMC visits scheduled for today.
+  * GET /api/amc/dashboard/renew-alerts - AMC contracts expiring within the next 30 days.
+  * GET /api/amc/dashboard/recent-activities - Recent logs (new subscriptions, completed visits, etc.).
+
+- AMC SUBSCRIPTIONS:
+  * GET /api/amc/active - Paginated active contracts list. Query params: page, limit, search/q, category, status, date/startDate, sortBy (startDate/endDate/createdAt/price), sortOrder (ASC/DESC).
+  * GET /api/amc/expired - Paginated expired contracts list. Query params: page, limit, search/q, category, status, date/startDate, sortBy, sortOrder.
+  * GET /api/amc/:amcId - Complete contract details with customer info, property details, subscription details, price, areaSqFt, floors, dates, visit counts, status, and address.
+  * POST /api/amc/:amcId/renew - Renew subscription. Body: { planId, note, price, durationMonths }.
+  * PUT /api/amc/:amcId/cancel - Cancel subscription. Body: { reason }.
+  * PUT /api/amc/:amcId/mark-paid - Mark subscription as paid and active.
+
+- SERVICE BOOKINGS & VISITS:
+  * POST /api/amc/:amcId/book-service - Book an AMC service visit (also creates a corresponding general order). Body: { serviceName, scheduledDate, timeSlot, description }.
+  * GET /api/amc/:amcId/service-history - History of completed visits for a contract.
+  * GET /api/amc/visits - List all AMC visits.
+  * GET /api/amc/visits/:visitId - Single visit details.
+  * GET /api/amc/visits/:visitId/images - Images uploaded for a visit.
+
+- INTEGRATED ORDERS:
+  * GET /api/amc/orders - Fetch all orders linked to an AMC.
+  * GET /api/amc/orders/:orderId - Details of a specific AMC order.
+  * POST /api/amc/orders/assign-partner - Assign partner to AMC order/visit. Body: { orderId, visitId, partnerPhone, partnerName }.
+  * PUT /api/amc/orders/:orderId/change-partner - Reassign partner. Body: { partnerPhone, partnerName }.
+  * PUT /api/amc/orders/:orderId/status - Update status of AMC order (auto-creates payout record when completed). Body: { status }.
+
+- PARTNERS DROPDOWN:
+  * GET /api/partners/dropdown - Fetch list of approved partners (id, name, mobile) for dropdown selections.
+
+- PARTNER PAYMENTS:
+  * GET /api/amc/partner-payments - List partner payouts.
+  * GET /api/amc/partner-payments/:id - Details of a payout.
+  * POST /api/amc/partner-payments/release - Release payout status. Body: { paymentId }.
+
+- REPORTS:
+  * GET /api/amc/reports - Consolidated AMC reports. Query param: type (revenue / amc / orders / visits / payments).
+
+- NOTIFICATIONS:
+  * GET /api/amc/notifications - List AMC-related notifications.
+  * PUT /api/amc/notifications/mark-read - Mark read status.
+
+- GLOBAL SEARCH:
+  * GET /api/amc/search - Global search across subscriptions, visits, and orders. Query param: ?q=...
